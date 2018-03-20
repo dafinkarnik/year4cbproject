@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <title>WebRTC Circuit Breaker Test Application</title>
+
+    <style>
+      video {
+        background: black;
+        border: 1px solid gray;
+      }
+
+      body {
+        background: lightblue;
+        position: relative;
+        display: block;
+        margin: 0 auto;
+        margin-top: 50px;
+        width: 500px;
+        height: 500px;
+      }
+
+      #myVideo {
+        width: 150px;
+        height: 150px;
+        position: absolute;
+        top: 15px;
+        right: 15px;
+      }
+
+      #remoteVideo {
+        width: 500px;
+        height: 500px;
+      }
+    </style>
+  </head>
+  <body>
+      <video id="myVideo" autoplay></video>
+      <video id="remoteVideo" autoplay></video>
+    <script src="client.js"></script>
+  </body>
+</html>

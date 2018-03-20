@@ -1,0 +1,96 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+$init = <<SCRIPT
+  sudo aptitude update
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends lubuntu-desktop
+  curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+  sudo DEBIAN_FRONTEND=noninteractive aptitude install -y build-essential fakeroot debhelper autoconf automake libssl-dev \
+   python-all python-qt4 libtool git vim python-pip nodejs parcellite sshpass
+  sudo DEBIAN_FRONTEND=noninteractive aptitude install -y openjdk-8-jdk
+  echo 'export JAVA_HOME="/usr/lib/jvm/default-java"' >> ~/.profile
+  source ~/.profile
+  cp -R /vagrant /home/
+  tar xvzf /home/vagrant/chromium.tar.gz -C /home/vagrant/
+  cd /home/vagrant/code/rtcserver/
+  sudo npm -g install npm@latest
+  sudo npm install ws
+  sudo npm install -g ws
+SCRIPT
+
+$ovs = <<SCRIPT
+  wget http://openvswitch.org/releases/openvswitch-2.3.2.tar.gz
+  tar xf openvswitch-2.3.2.tar.gz
+  pushd openvswitch-2.3.2
+  DEB_BUILD_OPTIONS='parallel=8 nocheck' fakeroot debian/rules binary
+  popd
+  sudo dpkg -i openvswitch-common*.deb openvswitch-datapath-dkms*.deb python-openvswitch*.deb openvswitch-pki*.deb openvswitch-switch*.deb openvswitch-controller*.deb
+  rm -rf *openvswitch*
+SCRIPT
+
+$mininet = <<SCRIPT
+  git clone git://github.com/mininet/mininet
+  pushd mininet
+  git checkout -b 2.2.2 2.2.2
+  ./util/install.sh -fn
+  popd
+SCRIPT
+
+$sync = <<SCRIPT
+  /bin/cp -Rf /vagrant /home/
+SCRIPT
+
+$cleanup = <<SCRIPT
+  chown -R vagrant:vagrant /home/vagrant
+  find /home/vagrant -type d -print0 | xargs -0 chmod 775  
+  aptitude clean
+  rm -rf /tmp/*
+SCRIPT
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/trusty64"
+  config.vm.box_version = "14.04"
+  config.vm.boot_timeout = 3600
+  
+  # Access through a GUI 
+  config.vm.provider "virtualbox" do |v|
+     v.name = "Circuit-Breaker-Testbed"
+     v.memory = "4096"
+     v.gui = true
+     v.customize ["modifyvm", :id, "--cableconnected1", "on"]
+     v.customize ["modifyvm", :id, "--cpuexecutioncap", "90"]
+     v.customize ["modifyvm", :id, "--cpus", "2"]
+     v.customize ["modifyvm", :id, "--memory", "4096"]
+     # Enable bidirectional clipboard
+     v.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
+     # Enable symlinks in shared folders
+     v.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/v-root", "1"]
+  end
+  
+  ##################
+  ## Guest config ##
+  ##################
+  config.vm.hostname = "circuitbreakervm"  
+  ## SSH config
+  config.ssh.forward_agent = true
+  config.ssh.forward_x11 = true
+  
+  # Currently use a private IP for the box
+  config.vm.network :private_network, ip: "192.168.56.2"
+  config.vm.network "forwarded_port", guest: 22, host: 2222, host_ip: "127.0.0.1", id: 'ssh'
+  
+  ##################
+  ## Provisioning ##
+  ##################
+  config.vm.provision "fix-no-tty", type: "shell" do |s|
+    s.privileged = false
+    s.inline = "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
+  end
+  config.vm.provision :shell, privileged: false, :inline => $init
+  config.vm.provision :shell, privileged: false, :inline => $ovs  
+  config.vm.provision :shell, privileged: false, :inline => $mininet
+  config.vm.provision :shell, privileged: false, :inline => $sync, run: 'always'
+  config.vm.provision :shell, :inline => $cleanup
+  config.vm.provision :reload
+  
+end

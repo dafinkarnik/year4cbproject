@@ -1,0 +1,23 @@
+Instructions on how to obtain and build a specific Chromium version on Linux.
+
+To obtain:
+
+cd ~
+git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+export PATH="$PATH:${HOME}/depot_tools"			# You might be required to repeat this step on each new terminal or after a restart
+mkdir ~/chromium && cd ~/chromium
+cd src
+fetch --nohooks chromium
+git fetch --tags
+git checkout -b v65 65.0.3287.0				# Replace with other version if needed
+gclient sync --with_branch_heads --nohooks
+sudo ./build/install-build-deps.sh
+gclient runhooks
+
+
+
+To build while in the 'chromium/src' dir after the previous steps have completed:
+
+# Replace original library files with changed ones now if desired
+gn gen out/builddir     				# or 'gn args out/builddir' to be prompted to supply arguments, refer to https://www.chromium.org/developers/gn-build-configuration
+ninja -C out/builddir

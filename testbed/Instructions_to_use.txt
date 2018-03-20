@@ -1,0 +1,53 @@
+Instructions to use the testbed.
+
+Open gui.py or headless.py accordingly if you desire to run a test with GUIs or in headless mode.
+Adjust the network conditions on the bottleneck link on line 58.
+
+Open the Vagrantfile. Adjust the configuration accordingly to your machine's resources below line 56. 
+
+Open a terminal on the host OS. Vagrant and VirtualBox are required. 
+Vagrant 2.0.0 and VirtualBox 5.1.30 versions are recommended. 
+
+Run once before using for the first time:
+  vagrant plugin install vagrant-reload
+
+To run:
+  vagrant up
+
+To stop:
+  vagrant halt
+
+After running vagrant up wait until the script completes and the terminal prompts for next command.
+Once that's done either use the VBox GUI or type 'vagrant ssh' in the terminal to gain control to the VM.
+
+Log in with username vagrant and password vagrant.
+
+If using the GUI open a terminal. Make sure the working directory is /home/vagrant/. 
+Type 'sudo ./gui.py' to start the Mininet environment with the signalling server and the two Chromium call clients with GUIs. 
+
+The clients will automatically initialise a call. Wait until you are prompted for another command. A video sample will be recorded.
+A log of all triggered Circuit Breaker rules will be created in /vagrant/ (the host OS shared directory) with the name cb_triggered_datetime.log.
+At the same location another log with all messages from the Circuit Breaker will be created with the name cb_full_datetime.log.
+The full log from the scenario can be observed in /home/vagrant/Default/chrome_debug.log.
+ 
+Otherwise type 'sudo ./headless.py' to do the same but all in the command line without an interface. 
+
+
+
+
+The testbed sometimes causes the library implementation to become confused about the network state due to unknown reasons. Tests in that case cannot be run properly. 
+I suspect this is due to the insufficient resources on my personal machine to handle this type of load but this is not confirmed.
+In some cases it happens due to the malfunctioning of the MediaStream Recording API and this can be fixed by openning code/rtcclient/c1/index.js and commenting out line 113. 
+A video sample will then not be recorded.
+
+If this does not help, the browser with the Circuit Breaker implementation can be tested manually in the VM but outside the testbed environment.
+In one terminal navigate to code/rtcserver/ and run the command nodejs index.js.
+In another terminal type:
+sudo /path/to/chrome --remote-debugging-port=8792 --remote-debugging-address=0.0.0.0 --allow-file-access-from-files --use-fake-ui-for-media-stream --use-fake-device-for-media-stream --use-file-for-fake-video-capture="/home/vagrant/akiyo_qcif.y4m" --enable-logging --vmodule=*/webrtc/*=1 --user-data-dir=/home/vagrant/profiles --no-default-browser-check --no-first-run --ignore-certificate-errors --disable-renderer-backgrounding --disable-background-timer-throttling --no-sandbox file:///home/vagrant/code/rtcclient/c2/index.html
+Where '/path/to/chrome' is the path to the 'Default/chrome' executable contained in the submitted chromium.tar.gz. 
+In a third terminal:
+sudo /path/to/chrome --remote-debugging-port=8793 --remote-debugging-address=0.0.0.0 --allow-file-access-from-files --use-fake-ui-for-media-stream --use-fake-device-for-media-stream --use-file-for-fake-video-capture="/home/vagrant/akiyo_qcif.y4m" --enable-logging --vmodule=*/webrtc/*=1 --temp-profile --no-default-browser-check --no-first-run --no-sandbox file:///home/vagrant/code/rtcclient/c1/index.html 
+
+The clients will automatically set up a call and a video sample will be recorded if line 113 is not commented out in code/rtcclient/c1/index.js. 
+The full log can be observed in /path/to/Default/chrome_debug.log but from the terminals running the clients it should be obvious that the Circuit Breaker is performing its task.
+
